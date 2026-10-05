@@ -58,4 +58,16 @@ module.exports = [
   ['1.x', '1.3.0 || <1.0.0 >2.0.0', true],
   ['*', '*', true],
   ['x', '', true],
+  // an exact prerelease intersects a range that licenses it: the range's
+  // `>=1.2.0-beta.1` lower bound licenses the prerelease that its
+  // `<2.0.0-0` upper bound alone would reject
+  ['^1.2.0-beta.1', '1.2.0-beta.3', true],
+  ['~1.2.0-beta.1', '1.2.0-beta.3', true],
+  ['>=1.2.0-beta.1 <1.3.0', '1.2.0-beta.3', true],
+  ['1.2.0-beta.3 || 3.0.0', '^1.2.0-beta.1', true],
+  // but an exact prerelease does NOT intersect a range that never
+  // licenses its [major, minor, patch] tuple
+  ['^1.2.0', '1.3.0-beta.1', false],
+  ['<2.0.0', '1.2.0-beta.3', false],
+  ['1.2.0-beta.3', '1.2.0-beta.4', false],
 ]

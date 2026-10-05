@@ -26,10 +26,11 @@ const compare = require('../functions/compare.js')
 // - If GT and LT, and GT.semver > LT.semver, return true (null set)
 // - If any C is a = range, and GT or LT are set, return false
 // - If EQ
-//   - If GT, and EQ does not satisfy GT, return true (null set)
-//   - If LT, and EQ does not satisfy LT, return true (null set)
+//   - If EQ does not satisfy every comparator in c, return true (null set)
 //   - If EQ satisfies every C, return true
 //   - Else return false
+//   (satisfaction is tested against the whole comparator set, so that
+//   prerelease licensing sees sibling comparators)
 // - If GT
 //   - If GT.semver is lower than any > or >= comp in C, return false
 //   - If GT is >=, and GT.semver does not satisfy every C, return false
@@ -124,21 +125,18 @@ const simpleSubset = (sub, dom, options) => {
 
   // will iterate one or zero times
   for (const eq of eqSet) {
-    if (gt && !satisfies(eq, String(gt), options)) {
+    // If the pinned version does not satisfy its own simple range, then
+    // the range is the null set.  Test against the whole set rather than
+    // comparator by comparator, so that prerelease licensing sees the
+    // sibling comparators: `1.2.0-beta.3 <2.0.0-0` is not null, because
+    // the `=1.2.0-beta.3` comparator licenses the prerelease.
+    if (!satisfies(eq, sub.join(' '), options)) {
       return null
     }
 
-    if (lt && !satisfies(eq, String(lt), options)) {
-      return null
-    }
-
-    for (const c of dom) {
-      if (!satisfies(eq, String(c), options)) {
-        return false
-      }
-    }
-
-    return true
+    // The simple sub range is exactly the eq version, so it is a subset
+    // iff that version satisfies the whole dom simple range.
+    return satisfies(eq, dom.join(' '), options)
   }
 
   let higher, lower

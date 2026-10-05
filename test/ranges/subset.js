@@ -41,6 +41,20 @@ const cases = [
   ['<1.2.3-pre.0', '<1.2.3-pre.0 || 2', true],
   ['1 <1.2.3-pre.0', '<1.2.3-pre.0', true],
 
+  // a locked prerelease that satisfies the declared range is a subset of
+  // it: the dom's own comparators license the prerelease tuple
+  ['1.2.0-beta.3', '^1.2.0-beta.1', true],
+  ['1.2.0-beta.3', '>=1.2.0-beta.1 <1.3.0', true],
+  ['^1.2.0-beta.1 1.2.0-beta.3', '^1.2.0-beta.1', true],
+  // prerelease gating still applies when the dom never licenses the tuple
+  ['1.3.0-beta.1', '^1.2.0', false],
+  ['1.3.0-beta.1', '^1.2.0', true, { includePrerelease: true }],
+  // an eq pinned outside the dom is not a subset, even though the eq's
+  // own range licenses the prerelease and is not the null set
+  ['^1.2.0-beta.1 1.2.0-beta.3', '^2.0.0', false],
+  // but a contradictory eq range is still the null set
+  ['1.2.0-beta.3 <1.2.0-beta.1', '^2.0.0', true],
+
   ['*', '*', true],
   ['', '*', true],
   ['*', '', true],

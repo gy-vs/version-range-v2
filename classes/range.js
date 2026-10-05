@@ -181,11 +181,7 @@ class Range {
         range.set.some((rangeComparators) => {
           return (
             isSatisfiable(rangeComparators, options) &&
-            thisComparators.every((thisComparator) => {
-              return rangeComparators.every((rangeComparator) => {
-                return thisComparator.intersects(rangeComparator, options)
-              })
-            })
+            comparatorSetsIntersect(thisComparators, rangeComparators, options)
           )
         })
       )
@@ -256,6 +252,42 @@ const isSatisfiable = (comparators, options) => {
   }
 
   return result
+}
+
+// the single version pinned by a bare `=x.y.z` comparator in a set, or null
+const exactVersion = (comparators) => {
+  const exact = comparators.find(c => c.operator === '' && c.value !== '')
+  return exact ? exact.semver : null
+}
+
+// Do two satisfiable comparator sets share a version?
+// The pairwise comparator check is sufficient but not necessary: it
+// decomposes the sets into independent pairs, so it cannot see prerelease
+// licensing, which is a set-level property.  It only ever under-reports,
+// so a `true` there is authoritative.  When it fails and one of the sets
+// pins an exact version, the sets intersect iff that version satisfies
+// the whole other set, tested with testSet() so that prerelease licensing
+// sees all of the set's comparators: `1.2.0-beta.3` intersects
+// `>=1.2.0-beta.1 <2.0.0-0` because the `>=` sibling licenses the
+// prerelease that `<2.0.0-0` alone rejects.
+const comparatorSetsIntersect = (a, b, options) => {
+  options = parseOptions(options)
+
+  if (a.every(ac => b.every(bc => ac.intersects(bc, options)))) {
+    return true
+  }
+
+  const aExact = exactVersion(a)
+  if (aExact) {
+    return testSet(b, aExact, options)
+  }
+
+  const bExact = exactVersion(b)
+  if (bExact) {
+    return testSet(a, bExact, options)
+  }
+
+  return false
 }
 
 // comprised of xranges, tildes, stars, and gtlt's at this point.
