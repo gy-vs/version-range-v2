@@ -58,3 +58,35 @@ test('missing comparator parameter in intersect comparators', (t) => {
   'throws type error')
   t.end()
 })
+
+test('prerelease versions intersect ranges that satisfy them', (t) => {
+  // consistent with satisfies(): a pinned prerelease version intersects
+  // a range iff the range allows that prerelease tuple
+  const yes = [
+    ['1.2.0-beta.3', '^1.2.0-beta.1'],
+    ['1.2.0-beta.3', '>=1.2.0-beta.1 <1.3.0'],
+    ['1.2.0-beta.3 || 3.0.0', '^1.2.0-beta.1'],
+  ]
+  for (const [a, b] of yes) {
+    t.equal(intersects(a, b), true, `${a} <~> ${b}`)
+    t.equal(intersects(b, a), true, `${b} <~> ${a}`)
+    t.equal(intersects(a, b, { includePrerelease: true }), true,
+      `${a} <~> ${b} includePrerelease`)
+  }
+
+  // prerelease versions are still gated out of ranges that do not
+  // mention their tuple, unless includePrerelease is set
+  const gated = [
+    // a prerelease below the range floor is excluded either way
+    ['1.2.0-beta.3', '^1.2.0', false],
+    ['1.3.0-beta.1', '^1.2.0', true],
+    ['1.2.0-beta.3', '*', true],
+  ]
+  for (const [a, b, inclPre] of gated) {
+    t.equal(intersects(a, b), false, `${a} <!~> ${b}`)
+    t.equal(intersects(b, a), false, `${b} <!~> ${a}`)
+    t.equal(intersects(a, b, { includePrerelease: true }), inclPre,
+      `${a} <~> ${b} includePrerelease`)
+  }
+  t.end()
+})

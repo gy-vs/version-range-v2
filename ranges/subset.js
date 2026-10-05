@@ -26,8 +26,7 @@ const compare = require('../functions/compare.js')
 // - If GT and LT, and GT.semver > LT.semver, return true (null set)
 // - If any C is a = range, and GT or LT are set, return false
 // - If EQ
-//   - If GT, and EQ does not satisfy GT, return true (null set)
-//   - If LT, and EQ does not satisfy LT, return true (null set)
+//   - If EQ does not satisfy every c, return true (null set)
 //   - If EQ satisfies every C, return true
 //   - Else return false
 // - If GT
@@ -124,18 +123,18 @@ const simpleSubset = (sub, dom, options) => {
 
   // will iterate one or zero times
   for (const eq of eqSet) {
-    if (gt && !satisfies(eq, String(gt), options)) {
+    // if the eq version does not satisfy the rest of the sub
+    // comparators, then the sub is the null set
+    if (!satisfies(eq, sub.map(String).join(' '), options)) {
       return null
     }
 
-    if (lt && !satisfies(eq, String(lt), options)) {
-      return null
-    }
-
-    for (const c of dom) {
-      if (!satisfies(eq, String(c), options)) {
-        return false
-      }
+    // the sub is just the eq version, so it is a subset of the dom iff
+    // the eq version satisfies the dom.  test the dom as a whole range,
+    // rather than comparator by comparator, so that prerelease versions
+    // are gated the same way that satisfies() gates them.
+    if (!satisfies(eq, dom.map(String).join(' '), options)) {
+      return false
     }
 
     return true

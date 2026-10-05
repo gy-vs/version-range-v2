@@ -41,6 +41,21 @@ const cases = [
   ['<1.2.3-pre.0', '<1.2.3-pre.0 || 2', true],
   ['1 <1.2.3-pre.0', '<1.2.3-pre.0', true],
 
+  // a pinned prerelease version is a subset of a range that satisfies it
+  ['1.2.0-beta.3', '^1.2.0-beta.1', true],
+  ['1.2.0-beta.3', '>=1.2.0-beta.1 <1.3.0', true],
+  ['1.2.0-beta.3', '^1.2.0-beta.1', true, { includePrerelease: true }],
+  ['^1.2.0-beta.1 1.2.0-beta.3', '^1.2.0-beta.1', true],
+
+  // but not of a range that does not allow its prerelease tuple
+  ['1.2.0-beta.3', '^1.2.0', false],
+  ['1.3.0-beta.1', '^1.2.0', false],
+  ['1.3.0-beta.1', '^1.2.0', true, { includePrerelease: true }],
+
+  // a pinned version anded with a range it satisfies is not a null set
+  ['^1.2.0-beta.1 1.2.0-beta.3', '^2.0.0', false],
+  ['1.2.0-beta.3 >2.0.0', '^2.0.0', true],
+
   ['*', '*', true],
   ['', '*', true],
   ['*', '', true],

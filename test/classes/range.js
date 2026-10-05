@@ -3,6 +3,7 @@
 const { test } = require('tap')
 const Range = require('../../classes/range')
 const Comparator = require('../../classes/comparator')
+const SemVer = require('../../classes/semver')
 const rangeIntersection = require('../fixtures/range-intersection.js')
 
 const rangeInclude = require('../fixtures/range-include.js')
@@ -15,6 +16,13 @@ test('range tests', t => {
     const r = new Range(range, options)
     t.ok(r.test(ver), `${range} satisfied by ${ver}`)
   })
+})
+
+test('range.test accepts a SemVer object', t => {
+  const r = new Range('^1.2.0')
+  t.ok(r.test(new SemVer('1.2.3')), 'SemVer object satisfying range')
+  t.notOk(r.test(new SemVer('2.0.0')), 'SemVer object not satisfying range')
+  t.end()
 })
 
 test('range parsing', t => {

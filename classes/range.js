@@ -175,10 +175,28 @@ class Range {
       throw new TypeError('a Range is required')
     }
 
+    options = parseOptions(options)
+
     return this.set.some((thisComparators) => {
+      // if this set contains an exact version comparator, then that
+      // version is the only one that can possibly satisfy it, so the
+      // satisfiability check below can be skipped in favor of testing
+      // that version against the sets directly.
+      const thisExact = exactVersion(thisComparators)
       return (
-        isSatisfiable(thisComparators, options) &&
+        (thisExact || isSatisfiable(thisComparators, options)) &&
         range.set.some((rangeComparators) => {
+          // if either set contains an exact version comparator, then
+          // the intersection is either that version or the null set.
+          // test the version against both sets the same way that
+          // satisfies() would, rather than intersecting the comparators
+          // pairwise, so that prerelease versions are gated against the
+          // full comparator sets instead of one comparator at a time.
+          const exact = thisExact || exactVersion(rangeComparators)
+          if (exact) {
+            return testSet(thisComparators, exact, options) &&
+              testSet(rangeComparators, exact, options)
+          }
           return (
             isSatisfiable(rangeComparators, options) &&
             thisComparators.every((thisComparator) => {
@@ -239,6 +257,17 @@ const BUILDSTRIPRE = new RegExp(src[t.BUILD], 'g')
 
 const isNullSet = c => c.value === '<0.0.0-0'
 const isAny = c => c.value === ''
+
+// if a comparator set contains an exact version comparator, then that
+// version is the only one that can possibly satisfy the set
+const exactVersion = (comparators) => {
+  for (const c of comparators) {
+    if (c.operator === '' && c.semver !== Comparator.ANY) {
+      return c.semver
+    }
+  }
+  return null
+}
 
 // take a set of comparators and determine whether there
 // exists a version which can satisfy it
